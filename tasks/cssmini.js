@@ -188,7 +188,7 @@ module.exports = function (grunt) {
                 var dest = path.join(f.dest, path.join(filepath).split(path.sep).slice(1).join(path.sep));
 
                 content = content.replace(/<\w+[^>]+>/gi, function(tag) {
-                    return tag.replace(/(?:class)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/gi, function(match, comma, className) {
+                    var _tag = tag.replace(/(?:class)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/gi, function(match, comma, className) {
                         return [
                             'class="',
                             className.split(' ').map(function(item) {
@@ -213,17 +213,29 @@ module.exports = function (grunt) {
                             '"'
                         ].join('');
                     });
-                });
 
-                // 自定义转换插件及常用模块转换支持
-                if (options.angularjs) {
-                    // angular derective transfer
+                    // other compile rules
+                    if (options.angularjs) {
+                        // angular derective transfer
+                        _tag.replace(/(?:ng-class)=(['"])([\s\S]*?)\1/gi, function(match, comma, exp) {
+                            return exp.replace(/(['"])([a-zA-Z0-9\-\_]+?)\1/g, function(match2, g1, className) {
+                                var _className = '.'+className;
 
-                }
+                                if (excludes.indexOf(_className) !== -1 || R_EXCLUDE_SELECTOR.test(_className)) {
+                                    return match2;
+                                } else {
+                                    return match2.replace(className, selectorHash[className] || className);
+                                }
+                            });
+                        });
+                    }
 
-                // custom plugin
-                middlewares.forEach(function(plugin) {
-                    content = plugin(content, options);
+                    // custom plugin
+                    middlewares.forEach(function(plugin) {
+                        _tag = plugin(_tag, options);
+                    });
+
+                    return _tag;
                 });
 
                 grunt.file.write(dest, content);
