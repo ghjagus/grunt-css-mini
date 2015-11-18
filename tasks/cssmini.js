@@ -33,7 +33,7 @@ var classGenerator = {
         }
 
         if (this.index.right > this.stepNum) {
-           console.log('no classId to assign');
+            new gutil.PluginError('gulp-css-mini', 'no classId to assign');
             return;
         }
 
@@ -65,6 +65,10 @@ var commentCache = {
     data: {}
 };
 
+var R_EXCLUDE_SELECTOR = /\#|\.j\-/;
+var excludes;
+var _cssHasMinied = false;
+
 function preHandleCSS(content) {
     return content.replace(/{[^}]*?}/g, function(match, index, input) {
         var key = cssRulesCache.sufix + cssRulesCache.counter++;
@@ -83,8 +87,14 @@ function preHandleComment(content) {
 
 function mini(content) {
     return content.replace(/(?:[#\.][a-zA-Z0-9\-\_]+)/gi, function(selector, index, input) {
-        var type = selector[0],
+        var type ,
         newId;
+
+        if (excludes.indexOf(selector) !== -1 || R_EXCLUDE_SELECTOR.test(selector)) {
+            return selector;
+        }
+
+        type = selector[0];
 
         // delete ./# in class，id str
         selector = selector.slice(1);
@@ -120,35 +130,51 @@ function reborn(content) {
 
 module.exports = function (grunt) {
 
-    grunt.registerMultiTask('cssmini', 'a grunt plugin to zip css selectors in css or html files.', function () {
+    grunt.registerMultiTask('cssmini', 'zip css selectors in css or html files.', function () {
         var options = this.options();
         var cssSrcDir = options.cssSrcDir;
         var cb = this.async();
+        var selectorsHash = options.hashMapFile;
+        var middlewares = options.plugins || [];
 
-        if (!grunt.file.isDir(cssSrcDir)) {
-            grunt.log.error('css directory' + cssSrcDir + ' is not found');
-            return;
+        excludes = options.excludes || [];
+
+        if (! _cssHasMinied) {
+            if (!grunt.file.isDir(cssSrcDir)) {
+                grunt.log.error('css directory' + cssSrcDir + ' is not found');
+                return;
+            }
+
+            options.cssOutputDir = options.cssOutputDir || 'dist';
+
+            grunt.file.expand(cssSrcDir + '**/*.css').forEach(function(cssFile) {
+                var content = grunt.file.read(cssFile);
+                var fileName = path.basename(cssFile, '.css');
+                var destpath = path.join(options.cssOutputDir, fileName+'.css');
+
+                content = reborn(mini(preHandleComment(preHandleCSS(content))));
+                grunt.file.write(destpath, content);
+                grunt.log.ok((destpath+ ' successfully compiled!').green);
+            });
+
+            if (selectorsHash) {
+                if (selectorsHash === true) {
+                    selectorsHash = {
+                        name: 'selectorsHashMap.json',
+                        src: './'
+                    };
+                }
+                fs.writeFileSync(path.join(selectorsHash.src, selectorsHash.name), JSON.stringify(selectorHash, null, ' '));
+            }
+            _cssHasMinied = true;
         }
-
-        options.cssOutputDir = options.cssOutputDir || 'dist';
-
-        grunt.file.expand(cssSrcDir + '**/*.css').forEach(function(cssFile) {
-            var content = grunt.file.read(cssFile);
-            var fileName = path.basename(cssFile, '.css');
-            var destpath = path.join(options.cssOutputDir, fileName+'.css');
-
-            content = reborn(mini(preHandleComment(preHandleCSS(content))));
-            grunt.file.write(destpath, content);
-            grunt.verbose.writeln(destpath+ 'create successfully!');
-        });
-
-        return;
-        //TODO html, template compile
 
         // Iterate over all specified file groups.
         this.files.forEach(function (f) {
             // Concat specified files.
-            var src = f.src.filter(function (filepath) {
+            var _fileList;
+
+            _fileList = f.src.filter(function (filepath) {
                 // Warn on and remove invalid source files (if nonull was set).
                 if (!grunt.file.exists(filepath)) {
                     grunt.log.warn('Source file "' + filepath + '" not found.');
@@ -156,19 +182,55 @@ module.exports = function (grunt) {
                 } else {
                     return true;
                 }
-            }).map(function (filepath) {
-                // Read file source.
-                return grunt.file.read(filepath);
-            }).join(grunt.util.normalizelf(options.separator));
+            });
 
-            // Handle options.
-            src += options.punctuation;
+            _fileList.map(function (filepath) {
+                var content = grunt.file.read(filepath);
+                var dest = path.join(f.dest, path.join(filepath).split(path.sep).slice(1).join(path.sep));
 
-            // Write the destination file.
-            grunt.file.write(f.dest, src);
+                content = content.replace(/<\w+[^>]+>/gi, function(tag) {
+                    return tag.replace(/(?:class)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/gi, function(match, comma, className) {
+                        return [
+                            'class="',
+                            className.split(' ').map(function(item) {
+                                var _item = '.' + item;
 
-            // Print a success message.
-            grunt.log.writeln('File "' + f.dest + '" created.');
+                                return (excludes.indexOf(_item) !== -1 || R_EXCLUDE_SELECTOR.test(_item)) ?
+                                    item:
+                                selectorHash[item] || item;
+                            }).join(' '),
+                            '"'
+                        ].join('');
+                    }).replace(/(?:id)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/gi, function(match, comma, idName) {
+                        var _idName = '#'+idName;
+
+                        if (excludes.indexOf(_idName) !== -1 || R_EXCLUDE_SELECTOR.test(_idName)) {
+                            return match;
+                        }
+
+                        return [
+                            'id="',
+                            selectorHash[idName] || idName,
+                            '"'
+                        ].join('');
+                    });
+                });
+
+                // 自定义转换插件及常用模块转换支持
+                if (options.angularjs) {
+                    // angular derective transfer
+
+                }
+
+                // custom plugin
+                middlewares.forEach(function(plugin) {
+                    content = plugin(content, options);
+                });
+
+                grunt.file.write(dest, content);
+
+                grunt.log.ok(('File "' + dest + '" created.').green);
+            });
         });
     });
 
