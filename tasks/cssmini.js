@@ -133,7 +133,6 @@ module.exports = function (grunt) {
     grunt.registerMultiTask('cssmini', 'zip css selectors in css or html files.', function () {
         var options = this.options();
         var cssSrcDir = options.cssSrcDir;
-        var cb = this.async();
         var selectorsHash = options.hashMapFile;
         var middlewares = options.plugins || [];
 
