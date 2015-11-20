@@ -13,7 +13,7 @@ var fs = require('fs');
 var path = require('path');
 
 var classGenerator = {
-    asset: 'abcdefghijkmnpqrstuvwxyzABCDEFGHIJKMNPQRSTUVWXYZ'.split(''),
+    asset: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
     index: {
         left: -1,
         middle: 0,
@@ -33,7 +33,7 @@ var classGenerator = {
         }
 
         if (this.index.right > this.stepNum) {
-            new gutil.PluginError('gulp-css-mini', 'no classId to assign');
+            throw Error('no classId to assign');
             return;
         }
 
@@ -78,7 +78,7 @@ function preHandleCSS(content) {
 }
 
 function preHandleComment(content) {
-    return content.replace(/\/\*[\s\S]+?\*\//gim, function(match) {
+    return content.replace(/\/\*[\s\S]+?\*\//g, function(match) {
         var key = commentCache.sufix + commentCache.counter++;
         commentCache.data[key] = match;
         return key;
@@ -86,7 +86,7 @@ function preHandleComment(content) {
 }
 
 function mini(content) {
-    return content.replace(/(?:[#\.][a-zA-Z0-9\-\_]+)/gi, function(selector, index, input) {
+    return content.replace(/(?:[#\.][a-zA-Z0-9\-\_]+)/g, function(selector, index, input) {
         var type ,
         newId;
 
@@ -187,8 +187,8 @@ module.exports = function (grunt) {
                 var content = grunt.file.read(filepath);
                 var dest = path.join(f.dest, path.join(filepath).split(path.sep).slice(1).join(path.sep));
 
-                content = content.replace(/<\w+[^>]+>/gi, function(tag) {
-                    var _tag = tag.replace(/(?:class)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/gi, function(match, comma, className) {
+                content = content.replace(/<\w+[^>]+>/g, function(tag) {
+                    var _tag = tag.replace(/(?:class)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/g, function(match, comma, className) {
                         return [
                             'class="',
                             className.split(' ').map(function(item) {
@@ -200,7 +200,7 @@ module.exports = function (grunt) {
                             }).join(' '),
                             '"'
                         ].join('');
-                    }).replace(/(?:id)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/gi, function(match, comma, idName) {
+                    }).replace(/(?:id)=(['"])([a-zA-Z0-9\-\_\s]+?)\1/g, function(match, comma, idName) {
                         var _idName = '#'+idName;
 
                         if (excludes.indexOf(_idName) !== -1 || R_EXCLUDE_SELECTOR.test(_idName)) {
@@ -217,7 +217,7 @@ module.exports = function (grunt) {
                     // other compile rules
                     if (options.angularjs) {
                         // angular derective transfer
-                        _tag.replace(/(?:ng-class)=(['"])([\s\S]*?)\1/gi, function(match, comma, exp) {
+                        _tag.replace(/(?:ng-class)=(['"])([\s\S]*?)\1/g, function(match, comma, exp) {
                             return exp.replace(/(['"])([a-zA-Z0-9\-\_]+?)\1/g, function(match2, g1, className) {
                                 var _className = '.'+className;
 
