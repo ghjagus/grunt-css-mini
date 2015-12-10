@@ -215,6 +215,7 @@ module.exports = function (grunt) {
 
                     // other compile rules
                     if (options.angularjs) {
+                        // TODO to fix angular's ng-class bug
                         // angular derective transfer
                         _tag.replace(/(?:ng-class)=(['"])([\s\S]*?)\1/g, function(match, comma, exp) {
                             return exp.replace(/(['"])([a-zA-Z0-9\-\_]+?)\1/g, function(match2, g1, className) {

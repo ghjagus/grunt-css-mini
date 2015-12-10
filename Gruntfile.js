@@ -20,7 +20,8 @@ module.exports = function (grunt) {
         // Configuration to be run (and then tested).
         cssmini: {
             options: {
-                selectorsMap: true
+                selectorsMap: true,
+                angularjs: true
             },
             app1: {
                 options: {
