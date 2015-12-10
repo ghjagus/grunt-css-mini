@@ -12,8 +12,8 @@ describe('grunt-cssmini testing', function () {
     var selectorsMap = JSON.parse(grunt.file.read('selectorsMap.json'));
     var rMini = new RegExp(Object.keys(selectorsMap).join('|'), 'gmi');
 
-    var fixturesDir = 'test/fixtures/app1/';
-    var expectDir = 'test/expect/app1/';
+    var fixturesDir = 'test/fixtures/app2/';
+    var expectDir = 'test/expect/app2/';
     var tmpDir = 'test/tmp/';
 
     var replace = function(match) {
@@ -23,7 +23,7 @@ describe('grunt-cssmini testing', function () {
     var cssFiles = grunt.file.expand(fixturesDir + '/css/*.css');
     var htmlFiles = grunt.file.expand(fixturesDir + '/*.html');
 
-    describe('task app1', function () {
+    describe('task app2', function () {
         cssFiles.forEach(function(css) {
             var fileName;
             fileName = path.basename(css);
@@ -31,6 +31,7 @@ describe('grunt-cssmini testing', function () {
                 expect = grunt.file.read(fixturesDir + 'css/'+fileName).replace(rMini, replace);
                 grunt.file.write(expectDir + fileName, expect);
                 result = grunt.file.read(tmpDir + fileName);
+                // delete comment before assert
                 assert.equal(util.deleteCssComment(result), util.deleteCssComment(expect));
                 done();
             });
@@ -46,7 +47,7 @@ describe('grunt-cssmini testing', function () {
                     });
                 });
                 grunt.file.write(expectDir + fileName, expect);
-                result = grunt.file.read(tmpDir + 'fixtures/app1/' + fileName);
+                result = grunt.file.read(tmpDir + 'fixtures/app2/' + fileName);
                 assert.equal(result, expect);
                 done();
             });

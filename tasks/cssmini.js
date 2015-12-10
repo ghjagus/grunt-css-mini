@@ -67,7 +67,6 @@ var commentCache = {
 
 var R_EXCLUDE_SELECTOR = /\#|\.j\-/;
 var excludes;
-var _cssHasMinied = false;
 
 function preHandleCSS(content) {
     return content.replace(/{[^}]*?}/g, function(match, index, input) {
@@ -132,40 +131,40 @@ module.exports = function (grunt) {
 
     grunt.registerMultiTask('cssmini', 'zip css selectors in css or html files.', function () {
         var options = this.options();
-        var cssSrcDir = options.cssSrcDir;
-        var selectorsHash = options.hashMapFile;
+        var cssSrc = options.cssSrc;
+        var selectorsMap = options.selectorsMap;
         var middlewares = options.plugins || [];
+        var targets;
 
         excludes = options.excludes || [];
 
-        if (! _cssHasMinied) {
-            if (!grunt.file.isDir(cssSrcDir)) {
-                grunt.log.error('css directory' + cssSrcDir + ' is not found');
-                return;
-            }
+        targets = grunt.file.expand(cssSrc);
+        if (targets.length) {
+            options.cssDest = options.cssDest || 'dist';
 
-            options.cssOutputDir = options.cssOutputDir || 'dist';
-
-            grunt.file.expand(cssSrcDir + '**/*.css').forEach(function(cssFile) {
+            grunt.file.expand(cssSrc).forEach(function(cssFile) {
                 var content = grunt.file.read(cssFile);
                 var fileName = path.basename(cssFile, '.css');
-                var destpath = path.join(options.cssOutputDir, fileName+'.css');
+                var destpath = path.join(options.cssDest, fileName+'.css');
 
                 content = reborn(mini(preHandleComment(preHandleCSS(content))));
                 grunt.file.write(destpath, content);
                 grunt.log.ok((destpath+ ' successfully compiled!').green);
             });
 
-            if (selectorsHash) {
-                if (selectorsHash === true) {
-                    selectorsHash = {
-                        name: 'selectorsHashMap.json',
+            if (selectorsMap) {
+                if (selectorsMap === true) {
+                    selectorsMap = {
+                        name: 'selectorsMap.json',
                         src: './'
                     };
                 }
-                fs.writeFileSync(path.join(selectorsHash.src, selectorsHash.name), JSON.stringify(selectorHash, null, ' '));
+                fs.writeFileSync(path.join(selectorsMap.src, selectorsMap.name), JSON.stringify(selectorHash, null, ' '));
             }
-            _cssHasMinied = true;
+             //_cssHasMinied = true;
+        } else {
+            grunt.log.error('no files for cssmini.');
+            return;
         }
 
         // Iterate over all specified file groups.

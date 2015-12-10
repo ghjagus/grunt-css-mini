@@ -23,14 +23,39 @@ grunt.loadNpmTasks('grunt-css-mini');
 In your project's Gruntfile, add a section named `css_mini` to the data object passed into `grunt.initConfig()`.
 
 ```js
+// muti targets
 grunt.initConfig({
-  css_mini: {
-    options: {
-      // Task-specific options go here.
-    },
-    your_target: {
-      // Target-specific file lists and/or options go here.
-    },
+  cssmini: {
+      app1: {
+          options: {
+              cssSrc: ['test/fixtures/app1/*.css'],
+              cssDest: 'test/tmp'
+          },
+          src: 'test/fixtures/app1/*.html',
+          dest: 'test/tmp'
+      },
+      app2: {
+          options: {
+              cssSrc: ['test/fixtures/app2/*.css'],
+              cssDest: 'test/tmp'
+          },
+          src: 'test/fixtures/app2/*.html',
+          dest: 'test/tmp'
+      }
+  },
+});
+
+// or single target
+grunt.initConfig({
+  cssmini: {
+      options: {
+          cssSrc: ['test/fixtures/app1/*.css'],
+          cssDest: 'test/tmp'
+      },
+      html: {
+          src: 'test/fixtures/app1/*.html',
+          dest: 'test/tmp'
+      }
   },
 });
 ```
